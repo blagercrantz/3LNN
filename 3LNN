@@ -102,3 +102,4 @@ def pass_time():
     cost_label = canvas.create_text(400, 50, text=f"{cost:.5f}", fill='#FFFFFF', tag='cost_label')
     if play:
         window.after(1, pass_time)
+window.mainloop()
