@@ -81,7 +81,7 @@ def update_parameters():
     first_weights -= 0.005 * der_first_weights
     hidden_biases -= 0.005 * der_hidden_biases
 def generate_codes():
-    for i in range(1000):
+    for _ in range(1000):
         x = np.random.uniform(0, 1)
         y = np.random.uniform(0, 1)
         codes.append([x, y, np.sqrt((x-0.5) ** 2 + (y-0.5) ** 2)])
