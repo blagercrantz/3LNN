@@ -4,13 +4,13 @@ first_layer_count = 2
 second_layer_count = 6
 third_layer_count = 1
 input_neurons = np.zeros(first_layer_count)
-hidden_neurons, hidden_biases, der_hidden_biases, hidden_ReLUs = [np.zeros(second_layer_count) for _ in range(4)]
-output_neurons, output_biases, der_output_biases, output_ReLUs = [np.zeros(third_layer_count) for _ in range(4)]
+hidden_neurons, hidden_biases, der_hidden_biases, der_hidden_ReLUs = [np.zeros(second_layer_count) for _ in range(4)]
+output_neurons, output_biases, der_output_biases, der_output_ReLUs = [np.zeros(third_layer_count) for _ in range(4)]
 first_weights = np.random.uniform(low=-np.sqrt(6 / (first_layer_count + second_layer_count)), high=np.sqrt(6 / (first_layer_count + second_layer_count)), size=(second_layer_count, first_layer_count))
 second_weights = np.random.uniform(low=-np.sqrt(6 / (second_layer_count + third_layer_count)), high=np.sqrt(6 / (second_layer_count + third_layer_count)), size=(third_layer_count, second_layer_count))
 der_first_weights = np.zeros((second_layer_count, first_layer_count))
 der_second_weights = np.zeros((third_layer_count, second_layer_count))
-cost = 0
+batch_size = 1000
 codes = []
 play = False
 def toggle_function(event):
@@ -53,27 +53,27 @@ def forward():
         hidden_neurons[i] += hidden_biases[i]
         if hidden_neurons[i] < 0:
             hidden_neurons[i] /= 100
-            hidden_ReLUs[i] = 0.01
+            der_hidden_ReLUs[i] = 0.01
         else:
-            hidden_ReLUs[i] = 1
+            der_hidden_ReLUs[i] = 1
     for i in range(third_layer_count):
         for j in range(second_layer_count):
             output_neurons[i] += hidden_neurons[j] * second_weights[i][j]
         output_neurons[i] += output_biases[i]
         if output_neurons[i] < 0:
             output_neurons[i] /= 100
-            output_ReLUs[i] = 0.01
+            der_output_ReLUs[i] = 0.01
         else:
-            output_ReLUs[i] = 1
+            der_output_ReLUs[i] = 1
 def backward():
     for i in range(third_layer_count):
         code_index = first_layer_count + i
-        der_output_biases[i] += 2 * (output_neurons[i] - codes[0][code_index]) * output_ReLUs[i]
+        der_output_biases[i] += 2 * (output_neurons[i] - codes[0][code_index]) * der_output_ReLUs[i]
         for j in range(second_layer_count):
-            der_second_weights[i][j] += 2 * (output_neurons[i] - codes[0][code_index]) * output_ReLUs[i] * hidden_neurons[j]
-            der_hidden_biases[j] += 2 * (output_neurons[i] - codes[0][code_index]) * output_ReLUs[i] * second_weights[i][j] * hidden_ReLUs[j]
+            der_second_weights[i][j] += 2 * (output_neurons[i] - codes[0][code_index]) * der_output_ReLUs[i] * hidden_neurons[j]
+            der_hidden_biases[j] += 2 * (output_neurons[i] - codes[0][code_index]) * der_output_ReLUs[i] * second_weights[i][j] * der_hidden_ReLUs[j]
             for k in range(first_layer_count):
-                der_first_weights[j][k] += 2 * (output_neurons[i] - codes[0][code_index]) * output_ReLUs[i] * second_weights[i][j] * hidden_ReLUs[j] * input_neurons[k]
+                der_first_weights[j][k] += 2 * (output_neurons[i] - codes[0][code_index]) * der_output_ReLUs[i] * second_weights[i][j] * der_hidden_ReLUs[j] * input_neurons[k]
 def update_parameters():
     global second_weights, output_biases, first_weights, hidden_biases
     second_weights -= 0.005 * der_second_weights
@@ -81,9 +81,9 @@ def update_parameters():
     first_weights -= 0.005 * der_first_weights
     hidden_biases -= 0.005 * der_hidden_biases
 def generate_codes():
-    for _ in range(1000):
-        x = np.random.uniform(0, 1)
-        y = np.random.uniform(0, 1)
+    for _ in range(batch_size):
+        x = np.random.uniform(-1, 2)
+        y = np.random.uniform(-1, 2)
         codes.append([x, y, np.sqrt((x-0.5) ** 2 + (y-0.5) ** 2)])
 def pass_time():
     generate_codes()
@@ -97,7 +97,7 @@ def pass_time():
         backward()
         update_parameters()
         codes.pop(0)
-    cost /= (1000 * third_layer_count)
+    cost /= (batch_size * third_layer_count)
     canvas.delete('cost_label')
     cost_label = canvas.create_text(400, 50, text=f"{cost:.5f}", fill='#FFFFFF', tag='cost_label')
     if play:
